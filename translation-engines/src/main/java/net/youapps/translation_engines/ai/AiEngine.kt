@@ -56,7 +56,15 @@ class AiEngine(settingsProvider: EngineSettingsProvider) : TranslationEngine(set
     override suspend fun fetchSupportedModels(): List<String> {
         val apiKey = getApiKey() ?: return emptyList()
         return runCatching {
-            val response = api.getModels("Bearer $apiKey")
+            // Build the client from the current settings: `api` may still point at
+            // an old URL until createOrRecreate() runs when the screen is closed.
+            val currentApi = RetrofitHelper.createApi<Ai>(
+                this,
+                logBodies = false,
+                baseUrl = getUrl().trimEnd('/') + "/"
+            )
+            val response = currentApi.getModels("Bearer $apiKey")
+            if (!response.isSuccessful) return@runCatching emptyList()
             response.body()?.data?.map { it.id }?.filter { it.isNotBlank() }.orEmpty()
         }.getOrDefault(emptyList())
     }

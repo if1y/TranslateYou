@@ -66,13 +66,16 @@ fun ModelPreference(
                 .fillMaxWidth()
         )
 
+        // Show every option when the current text matches none of them (e.g. a stale
+        // custom/fallback model name), so the API-provided list stays reachable.
         val matches = options.filter { it.contains(value, ignoreCase = true) }
-        if (matches.isNotEmpty()) {
+        val visibleOptions = matches.ifEmpty { options }
+        if (visibleOptions.isNotEmpty()) {
             ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                matches.forEach { option ->
+                visibleOptions.forEach { option ->
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {

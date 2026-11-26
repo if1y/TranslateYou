@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.delay
 import com.bnyro.translate.App
 import com.bnyro.translate.R
 import com.bnyro.translate.ext.capitalize
@@ -72,14 +73,14 @@ fun EnginePref() {
 
     var fetchedModels by remember { mutableStateOf(emptyList<String>()) }
     var fetchedForEngine by remember { mutableStateOf<TranslationEngine?>(null) }
-    LaunchedEffect(selectedEngine) {
-        fetchedModels = emptyList()
-        fetchedForEngine = null
-        fetchedModels = selectedEngine.fetchSupportedModels()
-        fetchedForEngine = selectedEngine
+    var requestId by remember { mutableStateOf(0) }
+    var completedId by remember { mutableStateOf(-1) }
+    val modelOptions = when {
+        // A request is in flight - don't flash the built-in fallback list.
+        completedId != requestId -> emptyList()
+        fetchedForEngine == selectedEngine && fetchedModels.isNotEmpty() -> fetchedModels
+        else -> selectedEngine.supportedModels
     }
-    val modelOptions = (if (fetchedForEngine == selectedEngine) fetchedModels else emptyList())
-        .ifEmpty { selectedEngine.supportedModels }
 
     DropDownSelectPreference(
         preferenceKey = Preferences.selectedEngineKey,
@@ -127,6 +128,26 @@ fun EnginePref() {
 
         if (selectedEngine == engine) {
             Column(modifier = Modifier.fillMaxWidth()) {
+                // Re-fetch whenever the base URL or API key changes. Keying the effect on
+                // the engine object alone is not enough: it is the same mutable instance,
+                // so changing its settings never restarts the effect.
+                LaunchedEffect(engine, instanceUrl, apiKey) {
+                    val id = ++requestId
+                    fetchedModels = emptyList()
+                    fetchedForEngine = null
+                    try {
+                        // Debounce typing in the URL / key fields.
+                        delay(300)
+                        val models = runCatching { engine.fetchSupportedModels() }.getOrDefault(emptyList())
+                        if (id == requestId) {
+                            fetchedModels = models
+                            fetchedForEngine = engine
+                        }
+                    } finally {
+                        if (id == requestId) completedId = id
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(5.dp))
 
                 if (engine.urlModifiable) {
