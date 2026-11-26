@@ -24,13 +24,20 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Headers
 import retrofit2.http.POST
+
+// Identify the client instead of sending OkHttp's default `okhttp/4.x`,
+// which many WAFs classify as a bot/crawler.
+private const val USER_AGENT = "TranslateYou/20.0 (Android; +https://github.com/you-apps/TranslateYou)"
 
 interface Ai {
     @GET("models")
+    @Headers("User-Agent: $USER_AGENT")
     suspend fun getModels(@Header("Authorization") authorization: String): Response<AiModelsResponse>
 
     @POST("chat/completions")
+    @Headers("User-Agent: $USER_AGENT")
     suspend fun chat(
         @Header("Authorization") authorization: String,
         @Body request: AiChatRequest
