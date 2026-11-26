@@ -85,6 +85,16 @@ abstract class TranslationEngine(private val settingsProvider: EngineSettingsPro
     open val supportedModels: List<String> = listOf()
 
     /**
+     * Whether the user may enter a model name that is not part of [supportedModels].
+     */
+    open val allowCustomModel: Boolean = false
+
+    /**
+     * Fetch the available models dynamically. Defaults to the static [supportedModels].
+     */
+    open suspend fun fetchSupportedModels(): List<String> = supportedModels
+
+    /**
      * Initialize the translation engine using the API url provided by [settingsProvider] using [EngineSettingsProvider.getApiUrl].
      *
      * This must be called once before using the engine for the first time and whenever the API url has changed.

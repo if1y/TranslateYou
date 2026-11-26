@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +50,7 @@ import com.bnyro.translate.ui.components.prefs.ListPreferenceDialog
 import com.bnyro.translate.ui.components.prefs.PreferenceItem
 import com.bnyro.translate.util.Preferences
 import net.youapps.translation_engines.ApiKeyState
+import net.youapps.translation_engines.TranslationEngines
 
 @Composable
 fun EnginePref() {
@@ -58,12 +60,19 @@ fun EnginePref() {
         mutableStateOf(
             Preferences.get(
                 Preferences.selectedEngineKey,
-                App.translationEngines.first().name
+                TranslationEngines.DEFAULT_ENGINE_NAME
             )
         )
     }
     val selectedEngineIndex = engines.indexOfFirst { it.name == selectedName }
+        .takeIf { it >= 0 } ?: 0
     val selectedEngine = engines[selectedEngineIndex]
+
+    var fetchedModels by remember { mutableStateOf(emptyList<String>()) }
+    LaunchedEffect(selectedEngine) {
+        fetchedModels = selectedEngine.fetchSupportedModels()
+    }
+    val modelOptions = fetchedModels.ifEmpty { selectedEngine.supportedModels }
 
     DropDownSelectPreference(
         preferenceKey = Preferences.selectedEngineKey,
@@ -139,7 +148,7 @@ fun EnginePref() {
                 }
 
                 when {
-                    engine.supportedModels.isNotEmpty() -> {
+                    modelOptions.isNotEmpty() -> {
                         var showEngineSelDialog by remember {
                             mutableStateOf(false)
                         }
@@ -157,11 +166,11 @@ fun EnginePref() {
                         }
 
                         if (showEngineSelDialog) {
-                            var selectedAvailableEngine by remember {
+                            var selectedAvailableEngine by remember(engine) {
                                 mutableStateOf(
                                     Preferences.get(
                                         Preferences.selectedModelPrefKey(engine),
-                                        engine.supportedModels.first()
+                                        modelOptions.first()
                                     )
                                 )
                             }
@@ -169,28 +178,40 @@ fun EnginePref() {
                             ListPreferenceDialog(
                                 preferenceKey = null,
                                 onDismissRequest = { showEngineSelDialog = false },
-                                options = engine.supportedModels.mapIndexed { index, it ->
+                                options = modelOptions.mapIndexed { index, it ->
                                     ListPreferenceOption(
                                         it.replace("_", " ").capitalize(),
                                         value = index,
                                     )
                                 },
-                                currentValue = engine.supportedModels.indexOf(
-                                    selectedAvailableEngine
-                                )
+                                currentValue = modelOptions.indexOf(selectedAvailableEngine)
                                     .takeIf { it >= 0 }
                             ) { selectedModel ->
-                                val selectedModel = engine.supportedModels[selectedModel.value]
+                                val selectedModelName = modelOptions[selectedModel.value]
                                 Preferences.put(
                                     Preferences.selectedModelPrefKey(engine),
-                                    selectedModel
+                                    selectedModelName
                                 )
-                                selectedAvailableEngine = selectedModel
+                                selectedAvailableEngine = selectedModelName
 
                                 engineModified = true
                             }
                         }
                     }
+                }
+
+                if (engine.allowCustomModel) {
+                    var customModel by remember(engine) {
+                        mutableStateOf(
+                            Preferences.get(Preferences.selectedModelPrefKey(engine), "")
+                        )
+                    }
+
+                    EditTextPreference(
+                        preferenceKey = Preferences.selectedModelPrefKey(engine),
+                        value = customModel,
+                        labelText = stringResource(R.string.custom_model)
+                    ) { customModel = it }
                 }
             }
         }

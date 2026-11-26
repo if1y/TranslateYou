@@ -17,7 +17,7 @@
 
 package net.youapps.translation_engines.bi
 
-import java.util.*
+import java.util.Locale
 import net.youapps.translation_engines.ApiKeyState
 import net.youapps.translation_engines.EngineSettingsProvider
 import net.youapps.translation_engines.Language
@@ -40,18 +40,28 @@ class BingEngine(settingsProvider: EngineSettingsProvider) : TranslationEngine(s
 
     private val languagesRegex = Regex("""languageMapping\s*=\s*\[(.*?)]""")
 
+    @Volatile
+    private var cachedConfig: BingConfig? = null
+
     override fun createOrRecreate(): TranslationEngine = apply {
-        api = RetrofitHelper.createApi(this)
+        api = RetrofitHelper.createApi<Bing>(
+            this,
+            connectTimeout = 5_000,
+            readTimeout = 5_000,
+            logBodies = false
+        )
+        cachedConfig = null
     }
 
     override suspend fun getLanguages(): List<Language> {
-        val translatorPage = api.getTranslatorPage().string()
-        val languageCodes = languagesRegex.find(translatorPage)!!.groupValues[1]
-            .split(",")
-            .map { it.trim('"') }
+        val translatorPage = getConfig().page
+        val languageCodes = languagesRegex.find(translatorPage)?.groupValues?.get(1)
+            ?.split(",")
+            ?.map { it.trim('"') }
+            ?: throw Exception("Bing: couldn't parse the language list.")
 
         return languageCodes.mapNotNull { code ->
-            val languageName = Locale(code).displayLanguage
+            val languageName = Locale.forLanguageTag(code).displayLanguage
             languageName.takeIf { it != code }?.let { Language(code = code, name = it) }
         }
     }
@@ -61,20 +71,12 @@ class BingEngine(settingsProvider: EngineSettingsProvider) : TranslationEngine(s
         source: String?,
         target: String
     ): Translation {
-        val translatorPage = api.getTranslatorPage().string()
-        val params = abuseParamsRegex.find(translatorPage)!!
-
-        val key = params.groupValues[1]
-        val token = params.groupValues[2]
-
-        val iid = iidRegex.find(translatorPage)!!.groupValues[1]
-        val ig = igRegex.find(translatorPage)!!.groupValues[1]
-
+        val config = getConfig()
         val response = api.translate(
-            ig = ig,
-            iid = iid,
-            key = key,
-            token = token,
+            ig = config.ig,
+            iid = config.iid,
+            key = config.key,
+            token = config.token,
             fromLang = source ?: "auto-detect",
             toLang = target,
             text = query
@@ -85,4 +87,43 @@ class BingEngine(settingsProvider: EngineSettingsProvider) : TranslationEngine(s
             detectedLanguage = response.detectedLanguage.language
         )
     }
+
+    private suspend fun getConfig(): BingConfig {
+        cachedConfig?.takeIf { System.currentTimeMillis() < it.expiresAt }?.let { return it }
+
+        val translatorPage = api.getTranslatorPage().string()
+        val params = abuseParamsRegex.find(translatorPage)
+            ?: throw Exception("Bing: couldn't parse the anti-abuse parameters.")
+        val iid = iidRegex.find(translatorPage)?.groupValues?.get(1)
+            ?: throw Exception("Bing: couldn't parse the IID.")
+        val ig = igRegex.find(translatorPage)?.groupValues?.get(1)
+            ?: throw Exception("Bing: couldn't parse the IG.")
+
+        val key = params.groupValues[1]
+        val token = params.groupValues[2]
+        val timestamp = key.toLongOrNull() ?: 0L
+        val interval = params.groupValues[3].toLongOrNull() ?: 0L
+        val expiresAt = maxOf(
+            if (timestamp > 0 && interval > 0) timestamp + interval else 0L,
+            System.currentTimeMillis() + 60_000L
+        )
+
+        return BingConfig(
+            page = translatorPage,
+            ig = ig,
+            iid = iid,
+            key = key,
+            token = token,
+            expiresAt = expiresAt
+        ).also { cachedConfig = it }
+    }
+
+    private data class BingConfig(
+        val page: String,
+        val ig: String,
+        val iid: String,
+        val key: String,
+        val token: String,
+        val expiresAt: Long
+    )
 }

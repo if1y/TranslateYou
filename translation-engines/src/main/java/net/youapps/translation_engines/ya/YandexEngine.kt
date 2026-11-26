@@ -52,10 +52,15 @@ class YandexEngine(settingsProvider: EngineSettingsProvider) : TranslationEngine
 
         val uuid = UUID.randomUUID().toString().replace("-", "") + "-0-0"
         val response = api.translate(lang, query, "android", uuid)
-        if (response.text.isEmpty()) throw Exception("Server didn't provide any translation.")
+        if (response.code != 200) {
+            val detail = response.message ?: response.text.joinToString().takeIf { it.isNotBlank() }
+            throw Exception("Yandex API error ${response.code}: ${detail ?: "unknown error"}")
+        }
+        val translatedText = response.text.firstOrNull()
+            ?: throw Exception("Yandex API returned an empty translation.")
         return Translation(
-            translatedText = response.text.first(),
-            detectedLanguage = response.lang.split("-").last()
+            translatedText = translatedText,
+            detectedLanguage = response.lang.split("-").last().takeIf { it.isNotBlank() }
         )
     }
 }

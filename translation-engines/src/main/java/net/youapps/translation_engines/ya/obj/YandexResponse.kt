@@ -22,6 +22,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class YandexResponse(
     val code: Int,
-    val lang: String,
-    val text: List<String>
+    val lang: String = "",
+    val text: List<String> = emptyList(),
+    val message: String? = null
 )

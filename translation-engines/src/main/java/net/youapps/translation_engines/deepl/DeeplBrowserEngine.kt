@@ -29,7 +29,7 @@ import net.youapps.translation_engines.deepl.obj.DeeplWebRequest
  * DeepL translator using its unauthenticated browser endpoint.
  */
 class DeeplBrowserEngine(settingsProvider: EngineSettingsProvider) : TranslationEngine(settingsProvider) {
-    override val name = "DeepL (Browser)"
+    override val name = "DeepL"
     override val defaultUrl = "https://oneshot-free.www.deepl.com"
     override val urlModifiable = false
     override val apiKeyState = ApiKeyState.DISABLED

@@ -47,6 +47,12 @@ object Preferences {
     private const val apiKey = "apiKey"
     private const val selectedModel = "selectedEngine"
 
+    private val engineNameMigrations = mapOf(
+        "DeepL (Browser)" to "DeepL",
+        "DeepL (Authenticated, free API)" to "DeepL (Free)",
+        "DeepL (Authenticated, paid API)" to "DeepL (Paid)"
+    )
+
     lateinit var prefs: SharedPreferences
 
     fun initialize(context: Context) {
@@ -54,6 +60,36 @@ object Preferences {
             "preferences",
             Context.MODE_PRIVATE
         )
+
+        migrateRenamedEngines()
+    }
+
+    private fun migrateRenamedEngines() {
+        for ((oldName, newName) in engineNameMigrations) {
+            for (suffix in listOf(apiKey, instanceUrlKey, selectedModel)) {
+                val oldKey = oldName + suffix
+                val newKey = newName + suffix
+                if (prefs.contains(oldKey)) {
+                    if (!prefs.contains(newKey)) {
+                        prefs.getString(oldKey, null)?.let { prefs.edit { putString(newKey, it) } }
+                    }
+                    prefs.edit { remove(oldKey) }
+                }
+            }
+
+            val oldSimKey = oldName + simultaneousTranslationKey
+            val newSimKey = newName + simultaneousTranslationKey
+            if (prefs.contains(oldSimKey)) {
+                if (!prefs.contains(newSimKey)) {
+                    prefs.edit { putBoolean(newSimKey, prefs.getBoolean(oldSimKey, false)) }
+                }
+                prefs.edit { remove(oldSimKey) }
+            }
+        }
+
+        prefs.getString(selectedEngineKey, null)
+            ?.let { engineNameMigrations[it] }
+            ?.let { prefs.edit { putString(selectedEngineKey, it) } }
     }
 
     fun <T> put(key: String, value: T) {

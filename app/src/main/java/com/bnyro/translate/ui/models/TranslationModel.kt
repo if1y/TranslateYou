@@ -51,6 +51,7 @@ import kotlinx.coroutines.withContext
 import net.youapps.translation_engines.Language
 import net.youapps.translation_engines.Translation
 import net.youapps.translation_engines.TranslationEngine
+import net.youapps.translation_engines.TranslationEngines
 
 class TranslationModel : ViewModel() {
     var engine by mutableStateOf(getCurrentEngine())
@@ -299,9 +300,9 @@ class TranslationModel : ViewModel() {
     private fun getCurrentEngine() = App.translationEngines.find {
         it.name == Preferences.get(
             Preferences.selectedEngineKey,
-            App.translationEngines.first().name
+            TranslationEngines.DEFAULT_ENGINE_NAME
         )
-    } ?: App.translationEngines.first()
+    } ?: App.translationEngines.first { it.name == TranslationEngines.DEFAULT_ENGINE_NAME }
 
     fun setCurrentEngine(engine: TranslationEngine) {
         Preferences.put(Preferences.selectedEngineKey, engine.name)

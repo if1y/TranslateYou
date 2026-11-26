@@ -18,6 +18,7 @@
 package net.youapps.translation_engines
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.util.concurrent.TimeUnit
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -27,13 +28,22 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
 object RetrofitHelper {
     val contentType = "application/json".toMediaTypeOrNull()!!
 
-    inline fun <reified T> createInstance(baseUrl: String): T {
+    inline fun <reified T> createInstance(
+        baseUrl: String,
+        connectTimeout: Long = 10_000,
+        readTimeout: Long = 10_000,
+        logBodies: Boolean = true
+    ): T {
         val httpClient = OkHttpClient.Builder()
+            .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
+            .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
 
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+        if (logBodies) {
+            val logging = HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+            httpClient.addInterceptor(logging)
         }
-        httpClient.addInterceptor(logging) // <-- this is the important line!
 
         return Retrofit.Builder()
             .baseUrl(baseUrl)
@@ -44,5 +54,11 @@ object RetrofitHelper {
             .create(T::class.java)
     }
 
-    inline fun <reified T> createApi(engine: TranslationEngine) = createInstance<T>(engine.getUrl())
+    inline fun <reified T> createApi(
+        engine: TranslationEngine,
+        connectTimeout: Long = 10_000,
+        readTimeout: Long = 10_000,
+        logBodies: Boolean = true,
+        baseUrl: String = engine.getUrl()
+    ) = createInstance<T>(baseUrl, connectTimeout, readTimeout, logBodies)
 }

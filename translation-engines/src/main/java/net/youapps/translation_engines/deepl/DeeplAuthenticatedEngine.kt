@@ -67,11 +67,11 @@ abstract class DeeplAuthenticatedEngine(settingsProvider: EngineSettingsProvider
 }
 
 class DeeplAuthenticatedFreeApiEngine(settingsProvider: EngineSettingsProvider) : DeeplAuthenticatedEngine(settingsProvider) {
-    override val name: String = "DeepL (Authenticated, free API)"
+    override val name: String = "DeepL (Free)"
     override val defaultUrl: String = "https://api-free.deepl.com"
 }
 
 class DeeplAuthenticatedPaidApiEngine(settingsProvider: EngineSettingsProvider) : DeeplAuthenticatedEngine(settingsProvider) {
-    override val name: String = "DeepL (Authenticated, paid API)"
+    override val name: String = "DeepL (Paid)"
     override val defaultUrl: String = "https://api.deepl.com"
 }

@@ -19,7 +19,7 @@
 ## Features
 
 - [x] more than 150 supported languages
-- [x] 9 different translation engines
+- [x] 17 different translation engines
 - [x] Material Design 3 (You)
 - [x] Dark and light theme
 - [x] Support for Android sharing system
@@ -41,22 +41,22 @@
 ## Supported translation engines
 
 ### Open Source / Self-hostable
-* <a href="https://github.com/LibreTranslate/LibreTranslate">LibreTranslate</a> _which requires an API key or alternatively has to be self-hosted._
 * <a href="https://github.com/thedaviddelta/lingva-translate">LingvaTranslate</a> _which uses Google Translate® to fetch translations._
 * <a href="https://simple-web.org/projects/simplytranslate.html">SimplyTranslate</a>
-* <a href="https://codeberg.org/aryak/mozhi">Mozhi</a>
-* <a href="https://translate.wmcloud.org">Wikimedia MinT</a>
-* <a href="https://apertium.org/">Apertium</a>
 * <a href="https://github.com/janvarev/OneRingTranslator">OneRingTranslator</a>
+* AI Translator _using any OpenAI-compatible API, including self-hosted ones. Requires an API key._
 
 ### Proprietary
-* <a href="https://www.deepl.com/translator">DeepL translator®</a>.
-* <a href="https://mymemory.translated.net/">MyMemory translator®</a>.
+* Google Translate® (unofficial endpoint)
+* Google Cloud Translation® _requires an API key from the user._
+* <a href="https://www.bing.com/translator">Bing Translator®</a>
+* <a href="https://www.deepl.com/translator">DeepL translator®</a> (browser, free API and paid API)
 * <a href="https://translate.yandex.com/">Yandex®</a>
+* <a href="https://www.iciba.com/">Iciba®</a>
+* LingoCloud (Caiyun) _the default token can be replaced by the user._
+* <a href="https://transmart.qq.com/">Transmart®</a>
+* <a href="https://mymemory.translated.net/">MyMemory translator®</a>.
 * <a href="https://en.pons.com/translate">PONS®</a>
-* <a href="https://glosbe.com/">Glosbe®</a>
-* <a href="https://laratranslate.com/translate">LaraTranslate®</a>
-* <a href="https://translate.kagi.com">Kagi Translate®</a>
 
 <!-- ---------- Screenshots [Plus version] ---------- -->
 ## Screenshots
@@ -110,7 +110,7 @@ class MySettingsProvider : EngineSettingsProvider {
     fun getApiKey(engine: TranslationEngine): String? = null
     fun getSelectedModel(engine: TranslationEngine): String? = null
 }
-val engine = LTEngine(settingsProvider).createOrRecreate()
+val engine = LVEngine(settingsProvider).createOrRecreate()
 
 val supportedLanguages = engine.getLanguages()
 ...

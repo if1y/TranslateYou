@@ -30,17 +30,22 @@ Use of Translate You may result in one or more of the following third party orga
 ### Translation API
 **from whom we retrieve the translation data via their API**
 
-* LibreTranslate, open source - https://github.com/LibreTranslate/LibreTranslate
-_You can choose the LibreTranslate instance according to your preference._
 * Lingva Translate, open source - https://github.com/thedaviddelta/lingva-translate
 _You can choose the Lingva Translate instance according to your preference._
-* DeepL, closed source - https://www.deepl.com/privacy/
-* MyMemory, closed source - https://mymemory.translated.net/doc/en/tos.php
-* Reverso, closed source - https://www.reverso.net/privacy.aspx
 * SimplyTranslate, open source - https://github.com/Simple-Web-Project/SimplyTranslate-Web
-* MinT, open source - https://gerrit.wikimedia.org/g/mediawiki/services/machinetranslation
-* Glosbe, closed source - https://glosbe.com/privacy-policy
-* Apertium, open source - https://github.com/apertium
+* OneRing Translator, open source - https://github.com/janvarev/OneRingTranslator
+* OpenAI-compatible AI APIs - the endpoint and API key are provided by the user.
+* Google Translate - https://policies.google.com/privacy
+* Google Cloud Translation - https://policies.google.com/privacy
+_The API key is provided by the user._
+* Bing Translator - https://privacy.microsoft.com/privacystatement
+* DeepL, closed source - https://www.deepl.com/privacy/
+* Yandex, closed source - https://yandex.com/legal/privacy/
+* Iciba, closed source - https://www.iciba.com/
+* LingoCloud (Caiyun) - https://caiyunapp.com/
+* Transmart - https://transmart.qq.com/
+* MyMemory, closed source - https://mymemory.translated.net/doc/en/tos.php
+* PONS, closed source - https://en.pons.com/privacy
 
 ## Android permissions requested by the application
 Note that 'Translate You' application requires android platform permissions:
