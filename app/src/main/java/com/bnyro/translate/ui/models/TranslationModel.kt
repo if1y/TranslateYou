@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.youapps.translation_engines.Language
+import net.youapps.translation_engines.LanguageCodes
 import net.youapps.translation_engines.Translation
 import net.youapps.translation_engines.TranslationEngine
 import net.youapps.translation_engines.TranslationEngines
@@ -112,7 +113,7 @@ class TranslationModel : ViewModel() {
     }
 
     fun mostDetectedLanguage(): Language? {
-        if (!simTranslationEnabled) return availableLanguages.find { it.code == translation.detectedLanguage }
+        if (!simTranslationEnabled) return findLanguage(translation.detectedLanguage.orEmpty())
 
         val mostDetectedLangCode = translatedTexts.values
             .filter { !it.detectedLanguage.isNullOrEmpty() }
@@ -121,7 +122,7 @@ class TranslationModel : ViewModel() {
             .maxBy { it.value.size }
             .key
 
-        return availableLanguages.find { it.code == mostDetectedLangCode }
+        return findLanguage(mostDetectedLangCode.orEmpty())
     }
 
     private fun getLanguageByPrefKey(key: String): Language? {
@@ -158,7 +159,7 @@ class TranslationModel : ViewModel() {
         // only run if languages were already loaded from the engine
         if (cancelOnUnsupportedLanguages && !languagesLoadInProgress) {
             if ((sourceLanguage.code.isEmpty() && !engine.supportsLanguageDetection) ||
-                (sourceLanguage.code.isNotEmpty() && availableLanguages.none { it.code == sourceLanguage.code })
+                (sourceLanguage.code.isNotEmpty() && findLanguage(sourceLanguage.code) == null)
             ) {
                 viewModelScope.launch {
                     _apiError.emit(UnsupportedLanguageException(sourceLanguage))
@@ -167,7 +168,7 @@ class TranslationModel : ViewModel() {
             }
 
             // target language is not supported
-            if (availableLanguages.none { it.code == targetLanguage.code }) {
+            if (findLanguage(targetLanguage.code) == null) {
                 viewModelScope.launch {
                     _apiError.emit(UnsupportedLanguageException(targetLanguage))
                 }
@@ -293,18 +294,22 @@ class TranslationModel : ViewModel() {
         }
     }
 
-    private fun replaceLanguageName(language: Language): Language {
-        if (availableLanguages.isEmpty()) return language
+    /**
+     * Find a language in the current engine's list, tolerating different code
+     * conventions between engines (legacy aliases, region/script tags, casing).
+     */
+    private fun findLanguage(code: String): Language? {
+        if (code.isEmpty()) return null
 
-        availableLanguages.firstOrNull { it.code == language.code }?.let { return it }
-
-        // Engines use different codes for the same language (e.g. Google has zh-CN
-        // and zh-TW while AI only has zh). Fall back to the base language code so
-        // switching engines doesn't invalidate the selected language.
-        val baseCode = language.code.substringBefore("-").substringBefore("_")
-        return availableLanguages.firstOrNull { it.code.equals(baseCode, ignoreCase = true) }
-            ?: language
+        return availableLanguages.firstOrNull { it.code.equals(code, ignoreCase = true) }
+            ?: availableLanguages.firstOrNull {
+                LanguageCodes.matchKey(it.code) == LanguageCodes.matchKey(code)
+            }
+            ?: availableLanguages.firstOrNull { LanguageCodes.base(it.code) == LanguageCodes.base(code) }
     }
+
+    private fun replaceLanguageName(language: Language): Language =
+        findLanguage(language.code) ?: language
 
     private fun getCurrentEngine() = App.translationEngines.find {
         it.name == Preferences.get(
