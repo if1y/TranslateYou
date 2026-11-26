@@ -50,6 +50,7 @@ import com.bnyro.translate.ui.components.prefs.ListPreferenceDialog
 import com.bnyro.translate.ui.components.prefs.PreferenceItem
 import com.bnyro.translate.util.Preferences
 import net.youapps.translation_engines.ApiKeyState
+import net.youapps.translation_engines.TranslationEngine
 import net.youapps.translation_engines.TranslationEngines
 
 @Composable
@@ -69,15 +70,21 @@ fun EnginePref() {
     val selectedEngine = engines[selectedEngineIndex]
 
     var fetchedModels by remember { mutableStateOf(emptyList<String>()) }
+    var fetchedForEngine by remember { mutableStateOf<TranslationEngine?>(null) }
     LaunchedEffect(selectedEngine) {
+        fetchedModels = emptyList()
+        fetchedForEngine = null
         fetchedModels = selectedEngine.fetchSupportedModels()
+        fetchedForEngine = selectedEngine
     }
-    val modelOptions = fetchedModels.ifEmpty { selectedEngine.supportedModels }
+    val modelOptions = (if (fetchedForEngine == selectedEngine) fetchedModels else emptyList())
+        .ifEmpty { selectedEngine.supportedModels }
 
     DropDownSelectPreference(
         preferenceKey = Preferences.selectedEngineKey,
         title = stringResource(R.string.selected_engine),
         items = engines.map { it.name },
+        defaultValue = TranslationEngines.DEFAULT_ENGINE_NAME,
         onSelect = { engineName ->
             selectedName = engineName
 

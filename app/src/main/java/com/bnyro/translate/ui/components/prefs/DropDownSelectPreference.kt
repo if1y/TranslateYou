@@ -36,9 +36,10 @@ fun DropDownSelectPreference(
     title: String,
     onSelect: (String) -> Unit,
     items: List<String>,
+    defaultValue: String? = null,
 ) {
     var selected by remember {
-        mutableStateOf(Preferences.get(preferenceKey, items.first()))
+        mutableStateOf(Preferences.get(preferenceKey, defaultValue ?: items.first()))
     }
 
     var showDropDown by remember {
