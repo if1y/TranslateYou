@@ -47,6 +47,7 @@ import com.bnyro.translate.obj.ListPreferenceOption
 import com.bnyro.translate.ui.components.prefs.DropDownSelectPreference
 import com.bnyro.translate.ui.components.prefs.EditTextPreference
 import com.bnyro.translate.ui.components.prefs.ListPreferenceDialog
+import com.bnyro.translate.ui.components.prefs.ModelPreference
 import com.bnyro.translate.ui.components.prefs.PreferenceItem
 import com.bnyro.translate.util.Preferences
 import net.youapps.translation_engines.ApiKeyState
@@ -155,6 +156,26 @@ fun EnginePref() {
                 }
 
                 when {
+                    engine.supportedModels.isNotEmpty() && engine.allowCustomModel -> {
+                        var model by remember(engine) {
+                            mutableStateOf(
+                                Preferences.get(
+                                    Preferences.selectedModelPrefKey(engine),
+                                    modelOptions.firstOrNull().orEmpty()
+                                )
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        ModelPreference(
+                            preferenceKey = Preferences.selectedModelPrefKey(engine),
+                            value = model,
+                            labelText = stringResource(R.string.model),
+                            options = modelOptions
+                        ) { model = it }
+                    }
+
                     modelOptions.isNotEmpty() -> {
                         var showEngineSelDialog by remember {
                             mutableStateOf(false)
@@ -205,20 +226,6 @@ fun EnginePref() {
                             }
                         }
                     }
-                }
-
-                if (engine.allowCustomModel) {
-                    var customModel by remember(engine) {
-                        mutableStateOf(
-                            Preferences.get(Preferences.selectedModelPrefKey(engine), "")
-                        )
-                    }
-
-                    EditTextPreference(
-                        preferenceKey = Preferences.selectedModelPrefKey(engine),
-                        value = customModel,
-                        labelText = stringResource(R.string.custom_model)
-                    ) { customModel = it }
                 }
             }
         }
