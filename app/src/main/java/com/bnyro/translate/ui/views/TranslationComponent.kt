@@ -80,10 +80,17 @@ fun TranslationComponent(
     showLanguageSelector: Boolean = false,
     largeTextFields: Boolean = true,
     focusInputOnLaunch: Boolean = true,
+    /**
+     * Split the available height into two fixed halves (source / result), each with
+     * its own scrolling text area. Used by the quick-translate popup so a long
+     * source text can't push the result and its language buttons out of view.
+     */
+    splitView: Boolean = false,
     onTranslationError: (e: String, important: Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val resultScrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
     var hasClip by remember {
@@ -123,180 +130,262 @@ fun TranslationComponent(
         }
     }
 
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    LaunchedEffect(Unit) {
+        if (!focusInputOnLaunch) {
+            // Quick-translate popup: text is already supplied by the intent, so
+            // keep the field unfocused and dismiss the IME inherited from the
+            // app that launched the PROCESS_TEXT action.
+            focusManager.clearFocus()
+            keyboardController?.hide()
+            return@LaunchedEffect
+        }
+
+        // only focus automatically on initial app launch, not when switching tabs
+        if (!viewModel.alreadyAutoFocusedInputField) {
+            viewModel.alreadyAutoFocusedInputField = true
+            focusRequester.requestFocus()
+        }
+    }
+
+    val sourceActions: @Composable () -> Unit = {
+        if (hasClip && viewModel.insertedText.isBlank()) {
+            Row {
+                ButtonWithIcon(
+                    text = stringResource(R.string.paste),
+                    icon = Icons.Default.ContentPaste
+                ) {
+                    coroutineScope.launch {
+                        viewModel.insertedText = clipboard.getText().orEmpty()
+                        viewModel.translateNow()
+                    }
+                }
+
+                Spacer(
+                    modifier = Modifier
+                        .width(0.dp)
+                )
+
+                ButtonWithIcon(
+                    text = stringResource(R.string.forget),
+                    icon = Icons.Default.Clear
+                ) {
+                    hasClip = false
+
+                    val manager =
+                        ContextCompat.getSystemService(context, ClipboardManager::class.java)
+                            ?: return@ButtonWithIcon
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        manager.clearPrimaryClip()
+                    } else {
+                        manager.setPrimaryClip(ClipData(null))
+                    }
+
+                    viewModel.clearTranslation()
+                }
+            }
+        } else if (
+            viewModel.insertedText.isNotBlank() &&
+            !Preferences.get(Preferences.translateAutomatically, true)
+        ) {
+            ButtonWithIcon(
+                text = stringResource(R.string.translate),
+                icon = Icons.Default.Translate
+            ) {
+                viewModel.translateNow()
+            }
+        }
+    }
+
+    val sourceField: @Composable (Modifier) -> Unit = { textFieldModifier ->
+        TranslationField(
+            translationModel = viewModel,
+            isSourceField = true,
+            text = viewModel.insertedText,
+            language = viewModel.sourceLanguage.copy(
+                code = viewModel.sourceLanguage.code.ifEmpty {
+                    viewModel.translation.detectedLanguage.orEmpty()
+                }
+            ),
+            showLanguageSelector = showLanguageSelector,
+            largeTextFields = largeTextFields,
+            focusRequester = focusRequester,
+            textFieldModifier = textFieldModifier,
+            alwaysShowActions = splitView,
+            setLanguage = {
+                if (it == viewModel.targetLanguage) {
+                    viewModel.targetLanguage = viewModel.sourceLanguage
+                }
+                viewModel.sourceLanguage = it
+            }
+        ) {
+            viewModel.insertedText = it
+            hasClip = clipboard.hasText()
+            viewModel.enqueueTranslation()
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier
-                .verticalScroll(scrollState)
-                .fillMaxSize()
-        ) {
-            val focusRequester = remember { FocusRequester() }
-            val focusManager = LocalFocusManager.current
-            val keyboardController = LocalSoftwareKeyboardController.current
-            LaunchedEffect(Unit) {
-                if (!focusInputOnLaunch) {
-                    // Quick-translate popup: text is already supplied by the intent, so
-                    // keep the field unfocused and dismiss the IME inherited from the
-                    // app that launched the PROCESS_TEXT action.
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                    return@LaunchedEffect
-                }
-
-                // only focus automatically on initial app launch, not when switching tabs
-                if (!viewModel.alreadyAutoFocusedInputField) {
-                    viewModel.alreadyAutoFocusedInputField = true
-                    focusRequester.requestFocus()
-                }
-            }
-
-            TranslationField(
-                translationModel = viewModel,
-                isSourceField = true,
-                text = viewModel.insertedText,
-                language = viewModel.sourceLanguage.copy(
-                    code = viewModel.sourceLanguage.code.ifEmpty {
-                        viewModel.translation.detectedLanguage.orEmpty()
-                    }
-                ),
-                showLanguageSelector = showLanguageSelector,
-                largeTextFields = largeTextFields,
-                focusRequester = focusRequester,
-                setLanguage = {
-                    if (it == viewModel.targetLanguage) {
-                        viewModel.targetLanguage = viewModel.sourceLanguage
-                    }
-                    viewModel.sourceLanguage = it
-                }
-            ) {
-                viewModel.insertedText = it
-                hasClip = clipboard.hasText()
-                viewModel.enqueueTranslation()
-            }
-
-            if (viewModel.translating) {
-                LinearProgressIndicator(
+        if (splitView) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Column(
                     modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(10.dp)
-                )
-            } else {
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    sourceField(Modifier.weight(1f))
+                    sourceActions()
+                }
+
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .padding(10.dp)
+                        .padding(vertical = 4.dp)
                         .size(70.dp, 1.dp)
                 )
-            }
 
-            if (hasClip && viewModel.insertedText.isBlank()) {
-                Row {
-                    ButtonWithIcon(
-                        text = stringResource(R.string.paste),
-                        icon = Icons.Default.ContentPaste
-                    ) {
-                        coroutineScope.launch {
-                            viewModel.insertedText = clipboard.getText().orEmpty()
-                            viewModel.translateNow()
-                        }
-                    }
-
-                    Spacer(
-                        modifier = Modifier
-                            .width(0.dp)
-                    )
-
-                    ButtonWithIcon(
-                        text = stringResource(R.string.forget),
-                        icon = Icons.Default.Clear
-                    ) {
-                        hasClip = false
-
-                        val manager =
-                            ContextCompat.getSystemService(context, ClipboardManager::class.java)
-                                ?: return@ButtonWithIcon
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                            manager.clearPrimaryClip()
-                        } else {
-                            manager.setPrimaryClip(ClipData(null))
-                        }
-
-                        viewModel.clearTranslation()
-                    }
-                }
-            } else if (
-                viewModel.insertedText.isNotBlank() &&
-                !Preferences.get(Preferences.translateAutomatically, true)
-            ) {
-                ButtonWithIcon(
-                    text = stringResource(R.string.translate),
-                    icon = Icons.Default.Translate
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
                 ) {
-                    viewModel.translateNow()
-                }
-            }
-
-            if (!viewModel.simTranslationEnabled) {
-                TranslationFieldForTranslation(
-                    viewModel,
-                    viewModel.translation,
-                    showLanguageSelector = showLanguageSelector,
-                    largeTextFields = largeTextFields
-                )
-            } else {
-                viewModel.translatedTexts.filter { it.value.translatedText.isNotEmpty() }
-                    .forEach { (engineName, translation) ->
-                        val engine = App.translationEngines.find { it.name == engineName }
-
-                        Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                            TranslationFieldForTranslation(
-                                viewModel,
-                                translation,
-                                showLanguageSelector = showLanguageSelector,
-                                largeTextFields = largeTextFields,
-                                engine = engine
-                            )
-                        }
-
-                        HorizontalDivider(
+                    if (viewModel.translating) {
+                        LinearProgressIndicator(
                             modifier = Modifier
                                 .align(Alignment.CenterHorizontally)
-                                .width(140.dp)
+                                .padding(bottom = 4.dp)
                         )
                     }
-            }
-        }
 
-        if (scrollState.value > 100) {
-            val fabModifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                    if (!viewModel.simTranslationEnabled) {
+                        TranslationFieldForTranslation(
+                            viewModel,
+                            viewModel.translation,
+                            showLanguageSelector = showLanguageSelector,
+                            largeTextFields = largeTextFields,
+                            textFieldModifier = Modifier.weight(1f),
+                            alwaysShowActions = true
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .verticalScroll(resultScrollState)
+                        ) {
+                            viewModel.translatedTexts.filter { it.value.translatedText.isNotEmpty() }
+                                .forEach { (engineName, translation) ->
+                                    val engine = App.translationEngines.find { it.name == engineName }
 
-            if (largeTextFields) {
-                FloatingActionButton(
-                    modifier = fabModifier,
-                    onClick = {
-                        coroutineScope.launch {
-                            scrollState.animateScrollTo(0)
+                                    TranslationFieldForTranslation(
+                                        viewModel,
+                                        translation,
+                                        showLanguageSelector = showLanguageSelector,
+                                        largeTextFields = largeTextFields,
+                                        engine = engine,
+                                        alwaysShowActions = true
+                                    )
+
+                                    HorizontalDivider(
+                                        modifier = Modifier
+                                            .align(Alignment.CenterHorizontally)
+                                            .width(140.dp)
+                                    )
+                                }
                         }
                     }
-                ) {
-                    Icon(Icons.Default.ArrowUpward, null)
                 }
-            } else {
-                SmallFloatingActionButton(
-                    modifier = fabModifier,
-                    onClick = {
-                        coroutineScope.launch {
-                            scrollState.animateScrollTo(0)
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(scrollState)
+                    .fillMaxSize()
+            ) {
+                sourceField(Modifier)
+
+                if (viewModel.translating) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(10.dp)
+                    )
+                } else {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(10.dp)
+                            .size(70.dp, 1.dp)
+                    )
+                }
+
+                sourceActions()
+
+                if (!viewModel.simTranslationEnabled) {
+                    TranslationFieldForTranslation(
+                        viewModel,
+                        viewModel.translation,
+                        showLanguageSelector = showLanguageSelector,
+                        largeTextFields = largeTextFields
+                    )
+                } else {
+                    viewModel.translatedTexts.filter { it.value.translatedText.isNotEmpty() }
+                        .forEach { (engineName, translation) ->
+                            val engine = App.translationEngines.find { it.name == engineName }
+
+                            Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                                TranslationFieldForTranslation(
+                                    viewModel,
+                                    translation,
+                                    showLanguageSelector = showLanguageSelector,
+                                    largeTextFields = largeTextFields,
+                                    engine = engine
+                                )
+                            }
+
+                            HorizontalDivider(
+                                modifier = Modifier
+                                    .align(Alignment.CenterHorizontally)
+                                    .width(140.dp)
+                            )
                         }
+                }
+            }
+
+            if (scrollState.value > 100) {
+                val fabModifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+
+                if (largeTextFields) {
+                    FloatingActionButton(
+                        modifier = fabModifier,
+                        onClick = {
+                            coroutineScope.launch {
+                                scrollState.animateScrollTo(0)
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Default.ArrowUpward, null)
                     }
-                ) {
-                    Icon(Icons.Default.ArrowUpward, null)
+                } else {
+                    SmallFloatingActionButton(
+                        modifier = fabModifier,
+                        onClick = {
+                            coroutineScope.launch {
+                                scrollState.animateScrollTo(0)
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Default.ArrowUpward, null)
+                    }
                 }
             }
         }
@@ -310,6 +399,8 @@ private fun TranslationFieldForTranslation(
     showLanguageSelector: Boolean,
     largeTextFields: Boolean,
     engine: TranslationEngine? = null,
+    textFieldModifier: Modifier = Modifier,
+    alwaysShowActions: Boolean = false
 ) {
     TranslationField(
         translationModel = viewModel,
@@ -319,6 +410,8 @@ private fun TranslationFieldForTranslation(
         language = viewModel.targetLanguage,
         showLanguageSelector = showLanguageSelector,
         translationEngine = engine,
+        textFieldModifier = textFieldModifier,
+        alwaysShowActions = alwaysShowActions,
         setLanguage = {
             if (it == viewModel.sourceLanguage) {
                 viewModel.sourceLanguage = viewModel.targetLanguage

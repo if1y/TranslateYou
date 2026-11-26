@@ -71,6 +71,8 @@ fun TranslationField(
     showLanguageSelector: Boolean = false,
     largeTextFields: Boolean = true,
     focusRequester: FocusRequester = remember { FocusRequester() },
+    textFieldModifier: Modifier = Modifier,
+    alwaysShowActions: Boolean = false,
     onEngineNameClick: () -> Unit = {},
     onTextChange: (String) -> Unit = {}
 ) {
@@ -87,7 +89,7 @@ fun TranslationField(
     }
 
     AnimatedVisibility(
-        visible = text.isNotEmpty(),
+        visible = text.isNotEmpty() || alwaysShowActions,
         enter = expandVertically(),
         exit = shrinkVertically(),
         label = "text actions fade"
@@ -180,7 +182,9 @@ fun TranslationField(
     }
 
     StyledTextField(
-        modifier = Modifier.focusRequester(focusRequester),
+        modifier = Modifier
+            .focusRequester(focusRequester)
+            .then(textFieldModifier),
         text = text,
         placeholder = if (isSourceField) stringResource(R.string.enter_text) else null,
         readOnly = !isSourceField,

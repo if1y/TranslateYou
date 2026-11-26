@@ -21,12 +21,14 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,8 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.bnyro.translate.R
 import com.bnyro.translate.ext.toastFromMainThread
@@ -60,53 +62,60 @@ class ShareActivity : TranslationActivity() {
                 translationModel.refresh()
             }
 
-            AlertDialog(
-                modifier = Modifier
-                    .heightIn(
-                        max = if (configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
-                            screenHeight * 2 / 3 else Dp.Unspecified
-                    )
-                    .padding(horizontal = 10.dp),
+            Dialog(
+                onDismissRequest = { finish() },
                 properties = DialogProperties(
                     usePlatformDefaultWidth = false
-                ),
-                onDismissRequest = { finish() },
-                confirmButton = {
-                    DialogButton(
-                        text = stringResource(R.string.okay)
-                    ) {
-                        finish()
-                    }
-                },
-                dismissButton = {
-                    DialogButton(text = stringResource(R.string.clear)) {
-                        translationModel.clearTranslation()
-                    }
-                },
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AppHeader(modifier = Modifier.weight(1f)) {
-                            val intent = Intent(this@ShareActivity, MainActivity::class.java)
-                                .putExtra(Intent.EXTRA_TEXT, translationModel.insertedText)
-                            this@ShareActivity.startActivity(intent)
+                )
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .padding(horizontal = 10.dp)
+                        .height(
+                            if (configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
+                                screenHeight * 2 / 3 else screenHeight * 4 / 5
+                        ),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AppHeader(modifier = Modifier.weight(1f)) {
+                                val intent = Intent(this@ShareActivity, MainActivity::class.java)
+                                    .putExtra(Intent.EXTRA_TEXT, translationModel.insertedText)
+                                this@ShareActivity.startActivity(intent)
+                            }
+                        }
+
+                        TranslationComponent(
+                            modifier = Modifier.weight(1f),
+                            viewModel = translationModel,
+                            showLanguageSelector = true,
+                            largeTextFields = false,
+                            focusInputOnLaunch = false,
+                            splitView = true
+                        ) { e, important ->
+                            context.toastFromMainThread(e)
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            DialogButton(text = stringResource(R.string.clear)) {
+                                translationModel.clearTranslation()
+                            }
+                            DialogButton(text = stringResource(R.string.okay)) {
+                                finish()
+                            }
                         }
                     }
-                },
-                text = {
-                    TranslationComponent(
-                        modifier = Modifier.fillMaxSize(),
-                        viewModel = translationModel,
-                        showLanguageSelector = true,
-                        largeTextFields = false,
-                        focusInputOnLaunch = false
-                    ) { e, important ->
-                        context.toastFromMainThread(e)
-                    }
                 }
-            )
+            }
         }
 
         setFinishOnTouchOutside(true)
