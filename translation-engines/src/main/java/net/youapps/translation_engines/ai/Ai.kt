@@ -28,8 +28,8 @@ import retrofit2.http.Headers
 import retrofit2.http.POST
 
 // Identify the client instead of sending OkHttp's default `okhttp/4.x`,
-// which many WAFs classify as a bot/crawler.
-private const val USER_AGENT = "TranslateYou/20.0 (Android; +https://github.com/you-apps/TranslateYou)"
+// which many WAFs classify as a bot/crawler. Keep in sync with app versionName.
+private const val USER_AGENT = "TranslateYou/20.0"
 
 interface Ai {
     @GET("models")
