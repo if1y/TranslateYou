@@ -61,6 +61,14 @@
     <string name="character_warning_limit_summary">當已翻譯的文字超過最大長度時發出警告。</string>
     <string name="use_free_api_summary">使用免費而不是付費的 Pro API。</string>
     <string name="accent_color">強調色</string>
+    <string name="accent_color_default">預設</string>
+    <string name="accent_color_blue">藍色</string>
+    <string name="accent_color_purple">紫色</string>
+    <string name="accent_color_pink">粉紅色</string>
+    <string name="accent_color_red">紅色</string>
+    <string name="accent_color_orange">橙色</string>
+    <string name="accent_color_green">綠色</string>
+    <string name="accent_color_teal">青色</string>
     <string name="server_error">與伺服器通訊時發生錯誤。</string>
     <string name="example">範例</string>
     <string name="missing_api_key">請在設定中提供 API 金鑰。</string>

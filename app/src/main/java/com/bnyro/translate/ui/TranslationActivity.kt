@@ -34,6 +34,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.bnyro.translate.ext.hexToColor
 import com.bnyro.translate.ext.parcelable
 import com.bnyro.translate.ui.models.TranslationModel
+import com.bnyro.translate.ui.theme.AccentColors
 import com.bnyro.translate.ui.theme.TranslateYouTheme
 import com.bnyro.translate.util.ImageHelper
 import com.bnyro.translate.util.LocaleHelper
@@ -43,7 +44,9 @@ import net.youapps.translation_engines.Language
 open class TranslationActivity: ComponentActivity() {
     lateinit var translationModel: TranslationModel
     var themeMode by mutableStateOf(Preferences.getThemeMode())
-    var accentColor by mutableStateOf(Preferences.getAccentColor())
+    // Custom RGB values are gone; map any previously stored color to a preset.
+    // null is kept so system dynamic colors still work on Android 12+.
+    var accentColor by mutableStateOf(Preferences.getAccentColor()?.let(AccentColors::matchOrClosest))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         LocaleHelper.updateLanguage(this)

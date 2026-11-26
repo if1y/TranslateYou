@@ -70,6 +70,14 @@
     <string name="theme_black">Black</string>
     <string name="accent_color">Accent color</string>
     <string name="dynamic_colors">Dynamic colors</string>
+    <string name="accent_color_default">Default</string>
+    <string name="accent_color_blue">Blue</string>
+    <string name="accent_color_purple">Purple</string>
+    <string name="accent_color_pink">Pink</string>
+    <string name="accent_color_red">Red</string>
+    <string name="accent_color_orange">Orange</string>
+    <string name="accent_color_green">Green</string>
+    <string name="accent_color_teal">Teal</string>
     <!-- History -->
     <string name="clear_history">Clear history</string>
     <string name="open">Open</string>
