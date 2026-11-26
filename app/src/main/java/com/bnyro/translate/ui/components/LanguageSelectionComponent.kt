@@ -68,7 +68,7 @@ fun LanguageSelectionComponent(viewModel: TranslationModel) {
                         viewModel.targetLanguage = viewModel.sourceLanguage
                     }
                     viewModel.sourceLanguage = it
-                    viewModel.translateNow()
+                    viewModel.enqueueTranslation()
                 }
             }
 
@@ -87,7 +87,7 @@ fun LanguageSelectionComponent(viewModel: TranslationModel) {
                         viewModel.sourceLanguage = viewModel.targetLanguage
                     }
                     viewModel.targetLanguage = it
-                    viewModel.translateNow()
+                    viewModel.enqueueTranslation()
                 }
             }
         }
@@ -111,7 +111,7 @@ fun LanguageSelectionComponent(viewModel: TranslationModel) {
                         viewModel.targetLanguage = viewModel.sourceLanguage
                     }
                     viewModel.sourceLanguage = it
-                    viewModel.translateNow()
+                    viewModel.enqueueTranslation()
                 }
             }
 
@@ -129,7 +129,7 @@ fun LanguageSelectionComponent(viewModel: TranslationModel) {
                         viewModel.sourceLanguage = viewModel.targetLanguage
                     }
                     viewModel.targetLanguage = it
-                    viewModel.translateNow()
+                    viewModel.enqueueTranslation()
                 }
             }
         }

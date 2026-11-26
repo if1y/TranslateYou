@@ -122,7 +122,7 @@ fun TranslationField(
                     useElevatedButton = false
                 ) {
                     setLanguage(it)
-                    translationModel.translateNow()
+                    translationModel.enqueueTranslation()
                 }
             }
 

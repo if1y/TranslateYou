@@ -131,7 +131,7 @@ class TranslationModel : ViewModel() {
         }.getOrNull()
     }
 
-    fun enqueueTranslation() {
+    fun enqueueTranslation(cancelOnUnsupportedLanguages: Boolean = true) {
         if (!Preferences.get(Preferences.translateAutomatically, true)) return
 
         val insertedTextTemp = insertedText
@@ -139,7 +139,9 @@ class TranslationModel : ViewModel() {
             Looper.getMainLooper()
         ).postDelayed(
             {
-                if (insertedTextTemp == insertedText) translateNow()
+                if (insertedTextTemp == insertedText) {
+                    translateNow(cancelOnUnsupportedLanguages)
+                }
             },
             Preferences.get(
                 Preferences.fetchDelay,
@@ -407,7 +409,7 @@ class TranslationModel : ViewModel() {
             translation = Translation("")
         }
 
-        translateNow()
+        enqueueTranslation()
     }
 
     fun playAudio(languageCode: String, text: String) {
