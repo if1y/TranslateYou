@@ -52,7 +52,7 @@
             android:excludeFromRecents="true"
             android:exported="true"
             android:theme="@style/Theme.Material3.DayNight.Dialog"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="stateHidden|adjustResize">
 
             <intent-filter>
                 <category android:name="android.intent.category.DEFAULT" />

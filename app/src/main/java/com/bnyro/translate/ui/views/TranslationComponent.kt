@@ -54,6 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -77,6 +79,7 @@ fun TranslationComponent(
     viewModel: TranslationModel,
     showLanguageSelector: Boolean = false,
     largeTextFields: Boolean = true,
+    focusInputOnLaunch: Boolean = true,
     onTranslationError: (e: String, important: Boolean) -> Unit
 ) {
     val context = LocalContext.current
@@ -130,7 +133,18 @@ fun TranslationComponent(
                 .fillMaxSize()
         ) {
             val focusRequester = remember { FocusRequester() }
+            val focusManager = LocalFocusManager.current
+            val keyboardController = LocalSoftwareKeyboardController.current
             LaunchedEffect(Unit) {
+                if (!focusInputOnLaunch) {
+                    // Quick-translate popup: text is already supplied by the intent, so
+                    // keep the field unfocused and dismiss the IME inherited from the
+                    // app that launched the PROCESS_TEXT action.
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                    return@LaunchedEffect
+                }
+
                 // only focus automatically on initial app launch, not when switching tabs
                 if (!viewModel.alreadyAutoFocusedInputField) {
                     viewModel.alreadyAutoFocusedInputField = true

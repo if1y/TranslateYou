@@ -100,7 +100,8 @@ class ShareActivity : TranslationActivity() {
                         modifier = Modifier.fillMaxSize(),
                         viewModel = translationModel,
                         showLanguageSelector = true,
-                        largeTextFields = false
+                        largeTextFields = false,
+                        focusInputOnLaunch = false
                     ) { e, important ->
                         context.toastFromMainThread(e)
                     }
