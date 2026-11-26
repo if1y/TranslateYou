@@ -71,10 +71,7 @@ class ShareActivity : TranslationActivity() {
                 Surface(
                     modifier = Modifier
                         .padding(horizontal = 10.dp)
-                        .height(
-                            if (configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
-                                screenHeight * 2 / 3 else screenHeight * 4 / 5
-                        ),
+                        .height(screenHeight * 4 / 5),
                     shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 6.dp
@@ -97,7 +94,9 @@ class ShareActivity : TranslationActivity() {
                             showLanguageSelector = true,
                             largeTextFields = false,
                             focusInputOnLaunch = false,
-                            splitView = true
+                            splitView = true,
+                            splitHorizontally =
+                                configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
                         ) { e, important ->
                             context.toastFromMainThread(e)
                         }

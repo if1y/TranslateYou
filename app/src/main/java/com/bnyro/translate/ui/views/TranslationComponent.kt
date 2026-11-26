@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -42,6 +44,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -86,6 +89,7 @@ fun TranslationComponent(
      * source text can't push the result and its language buttons out of view.
      */
     splitView: Boolean = false,
+    splitHorizontally: Boolean = false,
     onTranslationError: (e: String, important: Boolean) -> Unit
 ) {
     val context = LocalContext.current
@@ -233,72 +237,106 @@ fun TranslationComponent(
             .fillMaxWidth()
     ) {
         if (splitView) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    sourceField(Modifier.weight(1f))
-                    sourceActions()
+            val sourceHalf: @Composable ColumnScope.() -> Unit = {
+                sourceField(Modifier.weight(1f))
+                sourceActions()
+            }
+
+            val resultHalf: @Composable ColumnScope.() -> Unit = {
+                if (viewModel.translating) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(bottom = 4.dp)
+                    )
                 }
 
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(vertical = 4.dp)
-                        .size(70.dp, 1.dp)
-                )
+                if (!viewModel.simTranslationEnabled) {
+                    TranslationFieldForTranslation(
+                        viewModel,
+                        viewModel.translation,
+                        showLanguageSelector = showLanguageSelector,
+                        largeTextFields = largeTextFields,
+                        textFieldModifier = Modifier.weight(1f),
+                        alwaysShowActions = true
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(resultScrollState)
+                    ) {
+                        viewModel.translatedTexts.filter { it.value.translatedText.isNotEmpty() }
+                            .forEach { (engineName, translation) ->
+                                val engine = App.translationEngines.find { it.name == engineName }
 
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    if (viewModel.translating) {
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .padding(bottom = 4.dp)
-                        )
+                                TranslationFieldForTranslation(
+                                    viewModel,
+                                    translation,
+                                    showLanguageSelector = showLanguageSelector,
+                                    largeTextFields = largeTextFields,
+                                    engine = engine,
+                                    alwaysShowActions = true
+                                )
+
+                                HorizontalDivider(
+                                    modifier = Modifier
+                                        .align(Alignment.CenterHorizontally)
+                                        .width(140.dp)
+                                )
+                            }
+                    }
+                }
+            }
+
+            if (splitHorizontally) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    ) {
+                        sourceHalf()
                     }
 
-                    if (!viewModel.simTranslationEnabled) {
-                        TranslationFieldForTranslation(
-                            viewModel,
-                            viewModel.translation,
-                            showLanguageSelector = showLanguageSelector,
-                            largeTextFields = largeTextFields,
-                            textFieldModifier = Modifier.weight(1f),
-                            alwaysShowActions = true
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .verticalScroll(resultScrollState)
-                        ) {
-                            viewModel.translatedTexts.filter { it.value.translatedText.isNotEmpty() }
-                                .forEach { (engineName, translation) ->
-                                    val engine = App.translationEngines.find { it.name == engineName }
+                    VerticalDivider(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(horizontal = 4.dp)
+                    )
 
-                                    TranslationFieldForTranslation(
-                                        viewModel,
-                                        translation,
-                                        showLanguageSelector = showLanguageSelector,
-                                        largeTextFields = largeTextFields,
-                                        engine = engine,
-                                        alwaysShowActions = true
-                                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    ) {
+                        resultHalf()
+                    }
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        sourceHalf()
+                    }
 
-                                    HorizontalDivider(
-                                        modifier = Modifier
-                                            .align(Alignment.CenterHorizontally)
-                                            .width(140.dp)
-                                    )
-                                }
-                        }
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(vertical = 4.dp)
+                            .size(70.dp, 1.dp)
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        resultHalf()
                     }
                 }
             }
