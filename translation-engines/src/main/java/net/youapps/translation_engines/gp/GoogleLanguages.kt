@@ -31,8 +31,16 @@ object GoogleLanguages {
         "hy", "ig", "it", "yi", "hi", "su", "id", "jw", "en", "yo", "vi", "zh-TW", "zh-CN", "zh"
     )
 
-    fun displayName(code: String): String =
-        Locale.forLanguageTag(code).displayLanguage.takeIf { it != code } ?: code
+    fun displayName(code: String): String {
+        val name = Locale.forLanguageTag(code).displayLanguage.takeIf { it != code } ?: code
+        // Google exposes three Chinese variants; give them distinct labels so the
+        // language picker doesn't show three identical "Chinese" entries.
+        return when (code.lowercase()) {
+            "zh-cn" -> "$name (Simplified)"
+            "zh-tw" -> "$name (Traditional)"
+            else -> name
+        }
+    }
 
     fun toApiCode(code: String): String = when (code.lowercase()) {
         "zh" -> "zh-CN"

@@ -294,7 +294,16 @@ class TranslationModel : ViewModel() {
     }
 
     private fun replaceLanguageName(language: Language): Language {
-        return availableLanguages.firstOrNull { it.code == language.code } ?: language
+        if (availableLanguages.isEmpty()) return language
+
+        availableLanguages.firstOrNull { it.code == language.code }?.let { return it }
+
+        // Engines use different codes for the same language (e.g. Google has zh-CN
+        // and zh-TW while AI only has zh). Fall back to the base language code so
+        // switching engines doesn't invalidate the selected language.
+        val baseCode = language.code.substringBefore("-").substringBefore("_")
+        return availableLanguages.firstOrNull { it.code.equals(baseCode, ignoreCase = true) }
+            ?: language
     }
 
     private fun getCurrentEngine() = App.translationEngines.find {
